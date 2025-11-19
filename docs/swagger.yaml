@@ -1,407 +1,1516 @@
 openapi: 3.0.3
 info:
-  title: Academy Backend API
+  title: LMS Backend API
   version: 1.0.0
-  description: Versioned API for mobile apps (Android/iOS) and web dashboards.
+  description: |
+    Backend API for an LMS-style platform with phone-based OTP authentication for users/partners
+    and email+password authentication for admins. Supports users, partners, events, bookings,
+    reviews, rewards, notifications, and audit logs.
+x-notes: >
+  Some response wrapper schemas (e.g. list responses) and example payloads were inferred
+  based on typical REST patterns and the described business logic. No business behavior
+  was changed; only documentation structures and examples were added or normalized.
+
 servers:
+  - url: https://api.example.com
+    description: Production server
   - url: http://localhost:5000
-    description: Local
+    description: Local development server
+
+# Default security: most endpoints require a Bearer JWT. Public endpoints can override
+# with `security: []` at the operation level if needed.
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Authentication and authorization endpoints
+  - name: Admin
+    description: Admin-only management endpoints
+  - name: Users
+    description: User profile and management
+  - name: Events
+    description: Events and bookings
+  - name: Reviews
+    description: Reviews for events
+  - name: Rewards
+    description: Rewards, points, and redemptions
+  - name: Referral
+    description: Referral & invite endpoints
+  - name: Chat
+    description: Direct messaging, following, conversations, and message actions.
+  - name: Notifications
+    description: User notifications
+  - name: Audit Logs
+    description: Admin audit log access
+  - name: Health
+    description: Service health checks
+
 paths:
   /api/v1/health:
     get:
+      tags: [Health]
       summary: Health check
+      description: Returns the health status of the API and database connectivity.
       responses:
         '200':
-          description: OK
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ok:
+                  value:
+                    success: true
+                    message: OK
+                    data:
+                      status: ok
+                      db: connected
+
+  # =====================
+  # Auth - Admin Login
+  # =====================
+  /api/v1/admin/login:
+    post:
+      tags: [Auth, Admin]
+      summary: Admin login (email + password)
+      description: >
+        Authenticate an admin using email and password. Returns a JWT access token and
+        a long-lived refresh token. Non-admin users will receive a 403 response even with
+        valid email/password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+            examples:
+              adminLogin:
+                value:
+                  email: admin@example.com
+                  password: StrongPassword123
+      responses:
+        '200':
+          description: Authenticated admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Authenticated
+                    data:
+                      user:
+                        _id: 665f8b3e8e8f2a0012345678
+                        name: Admin User
+                        email: admin@example.com
+                        role: admin
+                        status: active
+                      accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken: 0b8fd233c1f44b1f9afc2f0453a3a6d1c1c9a...
+        '400':
+          description: Validation error in request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =====================
+  # Chat
+  # =====================
+  /api/v1/chat/follow/{userId}:
+    post:
+      tags: [Chat]
+      summary: Follow a user
+      description: Follow another user so that direct messaging can be enabled when mutual.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Followed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowResponse'
+        '400':
+          description: Cannot follow yourself or invalid user id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/chat/unfollow/{userId}:
+    post:
+      tags: [Chat]
+      summary: Unfollow a user
+      description: Unfollow a user. Idempotent if the follow relationship does not exist.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unfollowed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FollowResponse'
+
+  /api/v1/chat/message:
+    post:
+      tags: [Chat]
+      summary: Send a direct message (requires mutual follow)
+      description: Send a direct text message to another user. Requires both users to follow each other.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageResponse'
+        '400':
+          description: Validation error or self-messaging
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Mutual follow required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/chat/conversations:
+    get:
+      tags: [Chat]
+      summary: List user conversations
+      description: Returns conversations for the authenticated user ordered by recent activity.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Conversations list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/chat/conversations/{id}/messages:
+    get:
+      tags: [Chat]
+      summary: Paginated messages for a conversation
+      description: Returns paginated messages for a specific conversation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated conversation messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePaginationResponse'
+        '403':
+          description: User not part of this conversation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/chat/message/seen/{messageId}:
+    post:
+      tags: [Chat]
+      summary: Mark message as seen
+      description: Mark a specific message as seen by the receiver.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Message marked as seen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageSeenResponse'
+        '403':
+          description: Only the receiver can mark the message as seen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid:
+                  value:
+                    success: false
+                    message: Invalid credentials
+                    data: null
+        '403':
+          description: User is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notAdmin:
+                  value:
+                    success: false
+                    message: Forbidden
+                    data: null
+
+  # =====================
+  # Auth - Phone + OTP
+  # =====================
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user or partner (phone-based)
+      description: |
+        Public registration endpoint for users and partners.
+
+        - If `role = "user"` or omitted, a normal user is created with `role="user"` and `status="active"`.
+        - If `role = "partner"`, a partner request is created with `role="partner_request"` and `status="pending"`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              user:
+                value:
+                  name: Jane Doe
+                  phone: "+911234567890"
+                  email: jane@example.com
+                  role: user
+              partner:
+                value:
+                  name: Acme Coaching
+                  phone: "+911234567891"
+                  email: partner@example.com
+                  role: partner
+      responses:
+        '201':
+          description: Registered user or partner request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+              examples:
+                user:
+                  value:
+                    success: true
+                    message: Registered
+                    data:
+                      user:
+                        _id: 665f8b3e8e8f2a0099999999
+                        name: Jane Doe
+                        phone: "+911234567890"
+                        email: jane@example.com
+                        role: user
+                        status: active
+                      pendingApproval: false
+                partner:
+                  value:
+                    success: true
+                    message: Registered
+                    data:
+                      user:
+                        _id: 665f8b3e8e8f2a0099999998
+                        name: Acme Coaching
+                        phone: "+911234567891"
+                        email: partner@example.com
+                        role: partner_request
+                        status: pending
+                      pendingApproval: true
+        '400':
+          description: Validation error or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/send-otp:
+    post:
+      tags: [Auth]
+      summary: Send login OTP to phone
+      description: |
+        Sends a one-time password (OTP) to the specified phone for login.
+
+        - Only users with `role in ["user", "partner"]` and `status="active"` can receive OTPs.
+        - `partner_request` users receive `403 Partner account awaiting admin approval`.
+        - `suspended` users receive `403 Account suspended`.
+        - Unknown phone numbers receive `400`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendOtpRequest'
+            examples:
+              example:
+                value:
+                  phone: "+911234567890"
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendOtpResponse'
+              examples:
+                ok:
+                  value:
+                    success: true
+                    message: OTP sent
+                    data:
+                      ttl: 300
+        '400':
+          description: User not found for phone or invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Partner pending approval or user suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                partnerPending:
+                  value:
+                    success: false
+                    message: Partner account awaiting admin approval
+                    data: null
+                suspended:
+                  value:
+                    success: false
+                    message: Account suspended
+                    data: null
+
+  /api/v1/auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify login OTP (phone + code)
+      description: |
+        Verifies a login OTP sent to the user's phone. On success, returns JWT access and refresh tokens.
+
+        - Rejects expired or invalid codes.
+        - Re-checks user status and blocks `partner_request` and `suspended` users.
+        - Deletes the OTP record on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+            examples:
+              example:
+                value:
+                  phone: "+911234567890"
+                  code: "123456"
+      responses:
+        '200':
+          description: Authenticated via OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          description: OTP expired, invalid, or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Partner awaiting approval or account suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: >
+        Exchanges a valid refresh token for a new access token. The refresh token is usually
+        obtained from `/api/v1/admin/login` or `/api/v1/auth/verify-otp`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            examples:
+              example:
+                value:
+                  refreshToken: 0b8fd233c1f44b1f9afc2f0453a3a6d1c1c9a...
+      responses:
+        '200':
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '400':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =====================
+  # Users
+  # =====================
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      description: Returns profile information of the authenticated user or partner.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags: [Users]
+      summary: Update current user profile
+      description: >
+        Partially update the authenticated user's profile (e.g. name, email, avatar).
+        Phone number changes may be restricted or require re-verification depending on business rules.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =====================
+  # Referral
+  # =====================
+  /api/v1/referral/code:
+    get:
+      tags: [Referral]
+      summary: Get referral code for current user
+      description: Returns a deterministic referral code for the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Referral code for current user
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success: { type: boolean }
-                  message: { type: string }
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/ReferralCodeResponse'
+              examples:
+                ok:
+                  value:
+                    success: true
+                    message: Referral code
+                    data:
+                      code: INVITE-665f8b3e8e8f2a0012345678
+
+  /api/v1/referral/stats:
+    get:
+      tags: [Referral]
+      summary: Referral stats for current user
+      description: Returns referral statistics for the authenticated referrer.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Referral statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/ReferralStatsResponse'
+              examples:
+                ok:
+                  value:
+                    success: true
+                    message: Referral stats
+                    data:
+                      totalReferred: 5
+                      rewardsEarned: 250
+                      pendingRewardsCount: 2
+
+  /api/v1/referral/apply:
+    post:
+      tags: [Referral]
+      summary: Apply a referral code for the current user
+      description: Applies a referral code to the authenticated user.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReferralApplyRequest'
+            examples:
+              example:
+                value:
+                  referralCode: INVITE-665f8b3e8e8f2a0012345678
+      responses:
+        '200':
+          description: Referral applied or already applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
                   data:
                     type: object
                     properties:
-                      status: { type: string }
-                      db: { type: string }
+                      referrerId:
+                        type: string
+                      referredId:
+                        type: string
+                      rewardIssued:
+                        type: boolean
+                      subscriptionCompleted:
+                        type: boolean
+              examples:
+                created:
+                  value:
+                    success: true
+                    message: Referral applied
+                    data:
+                      referrerId: 665f8b3e8e8f2a0012345678
+                      referredId: 665f8b3e8e8f2a0099999999
+                      rewardIssued: false
+                      subscriptionCompleted: false
+                alreadyApplied:
+                  value:
+                    success: true
+                    message: Referral already applied
+                    data:
+                      referrerId: 665f8b3e8e8f2a0012345678
+                      referredId: 665f8b3e8e8f2a0099999999
+                      rewardIssued: false
+                      subscriptionCompleted: false
+        '400':
+          description: Invalid referral code or self-referral
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid:
+                  value:
+                    success: false
+                    message: Invalid referral code
+                    data: null
+                selfReferral:
+                  value:
+                    success: false
+                    message: Cannot use your own referral code
+                    data: null
 
-  /api/v1/auth/register:
+  /api/v1/referral/issue-reward:
     post:
-      summary: Register user
+      tags: [Referral]
+      summary: Issue referral reward when referred user completes subscription
+      description: >
+        Issues a referral reward to the referrer when the referred user completes a qualifying
+        subscription or purchase. Idempotent: calling multiple times for the same referred user
+        will not issue duplicate rewards.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name: { type: string }
-                email: { type: string }
-                password: { type: string }
-                role: { type: string, enum: [user, partner, admin] }
-      responses:
-        '201': { description: Created }
-
-  /api/v1/auth/login:
-    post:
-      summary: Login with email/password
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email: { type: string }
-                password: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/auth/refresh:
-    post:
-      summary: Refresh access token
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                refreshToken: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/auth/send-otp:
-    post:
-      summary: Send OTP to email
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/auth/verify-otp:
-    post:
-      summary: Verify OTP
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                email: { type: string }
-                code: { type: string }
-                token: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/users/profile:
-    get:
-      summary: Get own profile
-      security: [ { bearerAuth: [] } ]
-      responses:
-        '200': { description: OK }
-
-  /api/v1/users/profile/update:
-    patch:
-      summary: Update profile
-      security: [ { bearerAuth: [] } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name: { type: string, example: "New Name" }
-                avatar: { type: string, example: "https://cdn.example.com/u/avatar.png" }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/users/{id}/qr:
-    get:
-      summary: Get user profile QR (PNG)
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
+              $ref: '#/components/schemas/ReferralIssueRequest'
+            examples:
+              example:
+                value:
+                  userId: 665f8b3e8e8f2a0099999999
       responses:
         '200':
-          description: PNG
+          description: Reward issued or already issued
           content:
-            image/png: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      referral:
+                        type: object
+                      referrerRewards:
+                        type: integer
+                        nullable: true
+              examples:
+                firstIssue:
+                  value:
+                    success: true
+                    message: Referral reward issued
+                    data:
+                      referral:
+                        referrerId: 665f8b3e8e8f2a0012345678
+                        referredId: 665f8b3e8e8f2a0099999999
+                        rewardIssued: true
+                        subscriptionCompleted: true
+                      referrerRewards: 150
+                alreadyIssued:
+                  value:
+                    success: true
+                    message: Reward already issued
+                    data:
+                      referral:
+                        referrerId: 665f8b3e8e8f2a0012345678
+                        referredId: 665f8b3e8e8f2a0099999999
+                        rewardIssued: true
+                        subscriptionCompleted: true
+                      referrerRewards: 150
+        '400':
+          description: Invalid user id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Referral not found for referred user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/users/{id}/card:
+  # Admin user listing
+  /api/v1/admin/users:
     get:
-      summary: Get user business card (profile summary)
+      tags: [Admin, Users]
+      summary: List users (admin)
+      description: List users with optional filters for role and status. Admin-only.
+      security:
+        - adminAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [user, partner_request, partner, admin]
+          description: Optional filter by role
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, pending, suspended]
+          description: Optional filter by status
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: Page number (1-based)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 20
+          description: Page size
       responses:
-        '200': { description: OK }
+        '200':
+          description: Paged list of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+              examples:
+                page1:
+                  value:
+                    success: true
+                    message: OK
+                    data:
+                      items:
+                        - _id: 1
+                          name: Jane Doe
+                          phone: "+911234567890"
+                          email: jane@example.com
+                          role: user
+                          status: active
+                        - _id: 2
+                          name: Acme Coaching
+                          phone: "+911234567891"
+                          email: partner@example.com
+                          role: partner
+                          status: active
+                      pagination:
+                        page: 1
+                        limit: 20
+                        total: 2
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not an admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/users/{id}/follow:
-    post:
-      summary: Follow user
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/users/{id}/unfollow:
-    post:
-      summary: Unfollow user
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/users/{id}/followers:
+  /api/v1/admin/users/{id}:
     get:
-      summary: List followers
+      tags: [Admin, Users]
+      summary: Get user by ID (admin)
+      description: Returns a user by ID. Admin-only.
+      security:
+        - adminAuth: []
       parameters:
         - in: path
           name: id
+          description: User ID
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        '200': { description: OK }
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/users/{id}/following:
-    get:
-      summary: List following
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/users/rewards:
+  # =====================
+  # Admin user management
+  # =====================
+  /api/v1/admin/users/{id}/role:
     patch:
-      summary: Update rewards balance
-      security: [ { bearerAuth: [] } ]
-      responses:
-        '200': { description: OK }
+      tags: [Admin]
+      summary: Set user role (admin)
+      description: |
+        Update a user's role.
 
-  /api/v1/users/referrals:
-    post:
-      summary: Set referral
-      security: [ { bearerAuth: [] } ]
-      responses:
-        '200': { description: OK }
-
-  /api/v1/users/progress:
-    post:
-      summary: Update progress (mobile)
-      security: [ { bearerAuth: [] } ]
-      responses:
-        '200': { description: OK }
-
-  /api/v1/courses:
-    get:
-      summary: List courses
-      responses:
-        '200': { description: OK }
-    post:
-      summary: Create course
-      security: [ { bearerAuth: [] } ]
-      responses:
-        '201': { description: Created }
-
-  /api/v1/courses/{id}:
-    get:
-      summary: Get course by ID
+        - Allowed roles: `user`, `partner`, `admin`.
+        - When updating from `partner_request` to `partner`, the user's status is set to `active`.
+        - In non-test environments, an audit log entry is written and a push notification may be sent.
+      security:
+        - adminAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-    put:
-      summary: Update course
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-    delete:
-      summary: Delete course
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/courses/{id}/lessons:
-    post:
-      summary: Add lesson
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '201': { description: Created }
-
-  /api/v1/courses/{id}/progress:
-    post:
-      summary: Update progress for current user
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/events:
-    get:
-      summary: List events
-      responses:
-        '200': { description: OK }
-    post:
-      summary: Create event
-      security: [ { bearerAuth: [] } ]
-      responses:
-        '201': { description: Created }
-
-  /api/v1/events/{id}/book:
-    post:
-      summary: Book event
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        '200': { description: OK }
-
-  /api/v1/community/posts:
-    get:
-      summary: List posts
-      responses:
-        '200': { description: OK }
-    post:
-      summary: Create post (multipart)
-      security: [ { bearerAuth: [] } ]
+          description: User ID
+          schema:
+            type: string
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: object
-              properties:
-                content: { type: string }
-                image:
-                  type: string
-                  format: binary
+              $ref: '#/components/schemas/SetRoleRequest'
       responses:
-        '201': { description: Created }
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/community/posts/{id}/like:
-    post:
-      summary: Toggle like
-      security: [ { bearerAuth: [] } ]
+  /api/v1/admin/users/{id}/status:
+    patch:
+      tags: [Admin]
+      summary: Set user status (admin)
+      description: |
+        Update a user's status.
+
+        - Allowed statuses: `active`, `pending`, `suspended`.
+        - When status is `suspended`, user is blocked from OTP login and protected routes.
+      security:
+        - adminAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          description: User ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetStatusRequest'
       responses:
-        '200': { description: OK }
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/community/posts/{id}/comments:
+  # =====================
+  # Events & Bookings
+  # =====================
+  /api/v1/events:
+    get:
+      tags: [Events]
+      summary: List events
+      description: Returns a paginated list of published events.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: Page number (1-based)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 20
+          description: Page size
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventListResponse'
+              examples:
+                page1:
+                  value:
+                    success: true
+                    message: OK
+                    data:
+                      items:
+                        - _id: e1
+                          title: Webinar 1
+                          description: Introductory webinar
+                          startDate: 2025-01-01T10:00:00.000Z
+                          endDate: 2025-01-01T11:00:00.000Z
+                          capacity: 100
+                          location: Online
+                        - _id: e2
+                          title: Workshop
+                          description: Hands-on session
+                          startDate: 2025-01-05T09:00:00.000Z
+                          endDate: 2025-01-05T12:00:00.000Z
+                          capacity: 30
+                          location: HQ
+                      pagination:
+                        page: 1
+                        limit: 20
+                        total: 2
     post:
-      summary: Add comment
-      security: [ { bearerAuth: [] } ]
+      tags: [Events]
+      summary: Create event
+      description: Creates a new event. Only partners and admins are allowed.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not partner or admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/events/{eventId}:
+    get:
+      tags: [Events]
+      summary: Get event by ID
+      description: Returns an event by ID.
       parameters:
         - in: path
-          name: id
+          name: eventId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        '201': { description: Created }
+        '200':
+          description: Event found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/rewards/earn:
+  /api/v1/events/{eventId}/book:
     post:
-      summary: Earn rewards
-      security: [ { bearerAuth: [] } ]
+      tags: [Events]
+      summary: Book an event
+      description: >
+        Book a seat for the authenticated user for the specified event. Enforces capacity
+        and prevents duplicate bookings.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
       responses:
-        '200': { description: OK }
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Event full, already booked, or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bookings:
+    get:
+      tags: [Events]
+      summary: List my bookings
+      description: Returns a list of events the current user has booked.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of bookings for current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =====================
+  # Reviews
+  # =====================
+  /api/v1/events/{eventId}/reviews:
+    get:
+      tags: [Reviews]
+      summary: List reviews for an event
+      description: Returns a paginated list of reviews for the given event.
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 20
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewListResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Reviews]
+      summary: Create review for event
+      description: Adds a review for the specified event by the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =====================
+  # Rewards
+  # =====================
+  /api/v1/rewards:
+    get:
+      tags: [Rewards]
+      summary: Get current user rewards
+      description: Returns reward points and available rewards for the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Rewards summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardSummaryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/rewards/redeem:
     post:
-      summary: Redeem rewards
-      security: [ { bearerAuth: [] } ]
+      tags: [Rewards]
+      summary: Redeem a reward
+      description: Redeems a specific reward for the authenticated user, deducting points.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemRewardRequest'
       responses:
-        '200': { description: OK }
+        '200':
+          description: Reward redeemed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardRedemptionResponse'
+        '400':
+          description: Not enough points or invalid reward
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/rewards/leaderboard:
+  # =====================
+  # Notifications
+  # =====================
+  /api/v1/notifications:
     get:
-      summary: Leaderboard (top users by rewards)
+      tags: [Notifications]
+      summary: List notifications
+      description: Returns a paginated list of notifications for the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 20
       responses:
-        '200': { description: OK }
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/admin/users/{id}/approve:
+  /api/v1/notifications/{id}/read:
     patch:
-      summary: Approve user
-      security: [ { bearerAuth: [] } ]
+      tags: [Notifications]
+      summary: Mark a notification as read
+      description: Marks a single notification as read for the authenticated user.
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        '200': { description: OK }
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/admin/users/{id}/suspend:
+  /api/v1/notifications/read-all:
     patch:
-      summary: Suspend user
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      description: Marks all notifications for the current user as read.
+      security:
+        - bearerAuth: []
       responses:
-        '200': { description: OK }
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationBulkUpdateResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/admin/stats:
+  # =====================
+  # Audit Logs
+  # =====================
+  /api/v1/admin/audit-logs:
     get:
-      summary: Admin stats
-      security: [ { bearerAuth: [] } ]
+      tags: [Admin, Audit Logs]
+      summary: List audit logs (admin)
+      description: Returns a paginated list of audit log entries. Admin-only.
+      security:
+        - adminAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 20
       responses:
-        '200': { description: OK }
+        '200':
+          description: Paged audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogListResponse'
+              examples:
+                page1:
+                  value:
+                    success: true
+                    message: OK
+                    data:
+                      items:
+                        - _id: a1
+                          userId: u1
+                          actorId: admin1
+                          action: PARTNER_APPROVED
+                          meta:
+                            from: partner_request
+                            to: partner
+                          ip: 127.0.0.1
+                          createdAt: 2025-01-01T10:00:00.000Z
+                      pagination:
+                        page: 1
+                        limit: 20
+                        total: 1
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not an admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -409,58 +1518,793 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: >
+        Standard JWT-based authentication for users and partners.
+        Provide the token in the `Authorization` header as `Bearer <token>`.
+    adminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        JWT-based authentication for admin users. Same header format as `bearerAuth`,
+        but the underlying user must have `role="admin"`.
+
   schemas:
+    # ==========
+    # Base types
+    # ==========
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation error"
+        data:
+          type: object
+          nullable: true
+          description: Usually null for error responses
+      required: [success, message]
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 42
+      required: [page, limit, total]
+
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              example: ok
+            db:
+              type: string
+              example: connected
+
+    # ==========
+    # Auth models
+    # ==========
+    AdminLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required: [email, password]
+
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+          description: E.164 formatted phone number
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [user, partner]
+          description: When `partner`, account is created as `partner_request` + `pending` status.
+      required: [name, phone]
+
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            pendingApproval:
+              type: boolean
+      required: [success, message, data]
+
+    SendOtpRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+      required: [phone]
+
+    SendOtpResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            ttl:
+              type: integer
+              description: Time-to-live in seconds
+              example: 300
+
+    VerifyOtpRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+        code:
+          type: string
+          description: 6-digit OTP
+      required: [phone, code]
+
+    RefreshRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required: [refreshToken]
+
+    RefreshResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+
+    AuthSuccessResponse:
+      type: object
+      description: Success wrapper for auth endpoints returning tokens.
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Authenticated
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+      required: [success, message, data]
+
+    # ==========
+    # User models
+    # ==========
     User:
       type: object
       properties:
-        _id: { type: string }
-        name: { type: string }
-        email: { type: string }
-        role: { type: string }
-        avatar: { type: string }
-        rewards: { type: number }
-    Lesson:
+        _id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, partner_request, partner, admin]
+        status:
+          type: string
+          enum: [active, pending, suspended]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserResponse:
       type: object
       properties:
-        title: { type: string }
-        content: { type: string }
-        videoUrl: { type: string }
-        duration: { type: number }
-    Course:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/User'
+
+    UserListResponse:
       type: object
       properties:
-        _id: { type: string }
-        title: { type: string }
-        description: { type: string }
-        price: { type: number }
-        instructor: { $ref: '#/components/schemas/User' }
-        lessons:
-          type: array
-          items: { $ref: '#/components/schemas/Lesson' }
-        published: { type: boolean }
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+
+    SetRoleRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, partner, admin]
+      required: [role]
+
+    SetStatusRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, pending, suspended]
+      required: [status]
+
+    # ==========
+    # OTP model
+    # ==========
+    OTP:
+      type: object
+      properties:
+        _id:
+          type: string
+        phone:
+          type: string
+        code:
+          type: string
+        purpose:
+          type: string
+          enum: [login]
+        expiresAt:
+          type: string
+          format: date-time
+      required: [phone, code, purpose, expiresAt]
+
+    # ==========
+    # Event & booking models
+    # ==========
     Event:
       type: object
       properties:
-        _id: { type: string }
-        title: { type: string }
-        description: { type: string }
-        date: { type: string, format: date-time }
-        capacity: { type: number }
-    Comment:
+        _id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        capacity:
+          type: integer
+        location:
+          type: string
+        createdBy:
+          type: string
+          description: ID of partner or admin who created the event
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EventResponse:
       type: object
       properties:
-        user: { $ref: '#/components/schemas/User' }
-        text: { type: string }
-    Post:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Event'
+
+    EventListResponse:
       type: object
       properties:
-        _id: { type: string }
-        user: { $ref: '#/components/schemas/User' }
-        content: { type: string }
-        image: { type: string }
-        likes:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Event'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    CreateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        capacity:
+          type: integer
+        location:
+          type: string
+      required: [title, startDate, capacity]
+
+    Booking:
+      type: object
+      properties:
+        _id:
+          type: string
+        event:
+          type: string
+          description: Event ID
+        user:
+          type: string
+          description: User ID
+        status:
+          type: string
+          enum: [confirmed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+
+    BookingResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Booking'
+
+    BookingListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
           type: array
-          items: { type: string }
-        comments:
+          items:
+            $ref: '#/components/schemas/Booking'
+
+    # ==========
+    # Review models
+    # ==========
+    Review:
+      type: object
+      properties:
+        _id:
+          type: string
+        event:
+          type: string
+        user:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ReviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Review'
+
+    ReviewListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Review'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    CreateReviewRequest:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+      required: [rating]
+
+    # ==========
+    # Reward models
+    # ==========
+    Reward:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        pointsCost:
+          type: integer
+
+    RewardSummaryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            points:
+              type: integer
+              example: 1200
+            availableRewards:
+              type: array
+              items:
+                $ref: '#/components/schemas/Reward'
+
+    RedeemRewardRequest:
+      type: object
+      properties:
+        rewardId:
+          type: string
+      required: [rewardId]
+
+    RewardRedemptionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            reward:
+              $ref: '#/components/schemas/Reward'
+            remainingPoints:
+              type: integer
+
+    # ==========
+    # Chat models
+    # ==========
+    ChatMessageRequest:
+      type: object
+      properties:
+        receiverId:
+          type: string
+        text:
+          type: string
+        attachments:
           type: array
-          items: { $ref: '#/components/schemas/Comment' }
+          items:
+            type: string
+      required: [receiverId, text]
+
+    ChatMessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            _id:
+              type: string
+            conversationId:
+              type: string
+            senderId:
+              type: string
+            receiverId:
+              type: string
+            text:
+              type: string
+            attachments:
+              type: array
+              items:
+                type: string
+            seen:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
+
+    ConversationResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+        lastMessage:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        otherUser:
+          type: object
+          nullable: true
+
+    ConversationListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            records:
+              type: array
+              items:
+                $ref: '#/components/schemas/ConversationResponse'
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+            totalRecords:
+              type: integer
+
+    MessagePaginationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            records:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChatMessageResponse'
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+            totalRecords:
+              type: integer
+
+    ChatMessageSeenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+          properties:
+            messageId:
+              type: string
+            seen:
+              type: boolean
+
+    FollowResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+
+    # ==========
+    # Referral models
+    # ==========
+    ReferralApplyRequest:
+      type: object
+      properties:
+        referralCode:
+          type: string
+      required: [referralCode]
+
+    ReferralIssueRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+      required: [userId]
+
+    ReferralCodeResponse:
+      type: object
+      properties:
+        code:
+          type: string
+
+    ReferralStatsResponse:
+      type: object
+      properties:
+        totalReferred:
+          type: integer
+        rewardsEarned:
+          type: integer
+        pendingRewardsCount:
+          type: integer
+
+    # ==========
+    # Notification models
+    # ==========
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        user:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Notification'
+
+    NotificationListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Notification'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    NotificationBulkUpdateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            updatedCount:
+              type: integer
+
+    # ==========
+    # AuditLog model
+    # ==========
+    AuditLog:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+          description: Target user affected by the action
+        actorId:
+          type: string
+          description: Admin who performed the action
+        action:
+          type: string
+          example: PARTNER_APPROVED
+        meta:
+          type: object
+          additionalProperties: true
+        ip:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditLogListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/AuditLog'
+            pagination:
+              $ref: '#/components/schemas/Pagination'

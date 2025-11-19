@@ -14,6 +14,7 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 const platform = require('./middlewares/platformMiddleware');
+const requestLogger = require('./middlewares/request.logger');
 const logger = require('./utils/logger');
 const sanitize = require('./middlewares/sanitizeMiddleware');
 
@@ -25,6 +26,11 @@ const eventRoutes = require('./routes/eventRoutes');
 const communityRoutes = require('./routes/communityRoutes');
 const rewardRoutes = require('./routes/rewardRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const supportRoutes = require('./routes/supportRoutes');
+const partnerRoutes = require('./routes/partnerRoutes');
+const referralRoutes = require('./routes/referralRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -62,15 +68,17 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(sanitize);
+app.use(requestLogger);
 if (process.env.NODE_ENV !== 'test') {
+  app.use(sanitize);
   app.use(platform);
 }
 
 // Rate limiting
 const noop = (req, res, next) => next();
-const apiLimiter = process.env.NODE_ENV === 'test' ? noop : rateLimit({ windowMs: 60 * 1000, max: 200 });
-const authLimiter = process.env.NODE_ENV === 'test' ? noop : rateLimit({ windowMs: 60 * 1000, max: 60 });
+const rateLimitDisabled = process.env.NODE_ENV === 'test' || process.env.LOADTEST_DISABLE_RATE_LIMIT === 'true';
+const apiLimiter = rateLimitDisabled ? noop : rateLimit({ windowMs: 60 * 1000, max: 200 });
+const authLimiter = rateLimitDisabled ? noop : rateLimit({ windowMs: 60 * 1000, max: 60 });
 
 // Health
 app.get('/health', (req, res) => {
@@ -99,6 +107,10 @@ app.use('/api/events', eventRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/rewards', rewardRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/partner', partnerRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Versioned mounts (aliasing to same routers for backward compatibility)
 app.use('/api/v1', apiLimiter);
@@ -109,6 +121,11 @@ app.use('/api/v1/events', eventRoutes);
 app.use('/api/v1/community', communityRoutes);
 app.use('/api/v1/rewards', rewardRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/support', supportRoutes);
+app.use('/api/v1/partner', partnerRoutes);
+app.use('/api/v1/referral', referralRoutes);
+app.use('/api/v1/chat', chatRoutes);
 
 // Swagger docs
 if (process.env.NODE_ENV !== 'test' && (process.env.SWAGGER_ENABLED || 'true').toLowerCase() === 'true') {

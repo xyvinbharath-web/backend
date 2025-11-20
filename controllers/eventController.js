@@ -24,16 +24,40 @@ exports.getEvents = async (req, res, next) => {
 // POST /api/events/:id/book
 exports.bookEvent = async (req, res, next) => {
   try {
-    const ev = await Event.findById(req.params.id);
-    if (!ev) return notFoundRes(res, 'Event not found');
-    const already = ev.bookings.find((b) => String(b.user) === String(req.user._id));
-    if (already) return conflict(res, 'Already booked');
+    const eventId = req.params.id;
 
-    if (ev.capacity && ev.bookings.length >= ev.capacity) return badRequest(res, 'Event full');
+    // First, ensure the event exists
+    const existing = await Event.findById(eventId);
+    if (!existing) return notFoundRes(res, 'Event not found');
 
-    ev.bookings.push({ user: req.user._id });
-    await ev.save();
-    return ok(res, ev, 'Event booked');
+    // Atomic attempt to add a booking only when:
+    // - user is not already in bookings
+    // - capacity is either unlimited (0) or not yet reached
+    const capacityFilter = existing.capacity
+      ? { $expr: { $lt: [{ $size: '$bookings' }, existing.capacity] } }
+      : {}; // capacity 0 means unlimited in this codebase
+
+    const updated = await Event.findOneAndUpdate(
+      {
+        _id: eventId,
+        'bookings.user': { $ne: req.user._id },
+        ...capacityFilter,
+      },
+      { $push: { bookings: { user: req.user._id } } },
+      { new: true }
+    );
+
+    if (!updated) {
+      // Determine why the atomic update failed: already booked or full
+      const fresh = await Event.findById(eventId);
+      if (!fresh) return notFoundRes(res, 'Event not found');
+      const already = fresh.bookings.find((b) => String(b.user) === String(req.user._id));
+      if (already) return conflict(res, 'Already booked');
+      if (fresh.capacity && fresh.bookings.length >= fresh.capacity) return badRequest(res, 'Event full');
+      return conflict(res, 'Cannot book event');
+    }
+
+    return ok(res, updated, 'Event booked');
   } catch (err) {
     next(err);
   }

@@ -31,6 +31,11 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String },
     rewards: { type: Number, default: 0 },
     membershipTier: { type: String, enum: ['free', 'gold'], default: 'free' },
+    subscription: {
+      plan: { type: String, enum: ['free', 'gold'], default: 'free' },
+      status: { type: String, enum: ['active', 'expired', 'canceled'], default: 'active' },
+      expiresAt: { type: Date, default: null },
+    },
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: String },
     isSuspended: { type: Boolean, default: false },

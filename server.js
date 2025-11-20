@@ -30,6 +30,7 @@ const eventRoutes = require('./routes/eventRoutes');
 const communityRoutes = require('./routes/communityRoutes');
 const rewardRoutes = require('./routes/rewardRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const adminSubscriptionRoutes = require('./routes/admin/subscriptionAdminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 const partnerRoutes = require('./routes/partnerRoutes');
@@ -41,6 +42,16 @@ const app = express();
 // DB
 if (process.env.NODE_ENV !== 'test') {
   connectDB();
+
+  if ((process.env.CRON_ENABLED || 'true') === 'true') {
+    try {
+      // Lazy-require to avoid loading cron in test or when disabled
+      const { scheduleExpiryCron } = require('./cron/subscriptions.cron');
+      scheduleExpiryCron();
+    } catch (e) {
+      logger.warn('Failed to schedule subscription expiry cron: ' + e.message);
+    }
+  }
 }
 
 // Middlewares
@@ -125,6 +136,7 @@ app.use('/api/v1/events', eventRoutes);
 app.use('/api/v1/community', communityRoutes);
 app.use('/api/v1/rewards', rewardRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/admin', adminSubscriptionRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/support', supportRoutes);
 app.use('/api/v1/partner', partnerRoutes);

@@ -296,30 +296,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalid:
-                  value:
-                    success: false
-                    message: Invalid credentials
-                    data: null
-        '403':
-          description: User is not an admin
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                notAdmin:
-                  value:
-                    success: false
-                    message: Forbidden
-                    data: null
 
   # =====================
   # Auth - Phone + OTP

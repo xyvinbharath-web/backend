@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
@@ -17,6 +19,8 @@ const platform = require('./middlewares/platformMiddleware');
 const requestLogger = require('./middlewares/request.logger');
 const logger = require('./utils/logger');
 const sanitize = require('./middlewares/sanitizeMiddleware');
+const { setIo } = require('./src/lib/io');
+const { verifyToken } = require('./src/utils/jwt');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -141,11 +145,41 @@ if (process.env.NODE_ENV !== 'test' && (process.env.SWAGGER_ENABLED || 'true').t
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
-  });
-}
+// HTTP server & Socket.io
+const server = http.createServer(app);
 
-module.exports = app;
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
+
+setIo(io);
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth && socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('No auth token'));
+  }
+  try {
+    const decoded = verifyToken(token);
+    socket.userId = decoded.id;
+    return next();
+  } catch (err) {
+    return next(new Error('Invalid token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  // User joins their own private room for direct messages
+  if (socket.userId) {
+    socket.join(String(socket.userId));
+  }
+
+  socket.on('disconnect', () => {
+    // Optional: logging or cleanup
+  });
+});
+
+module.exports = server;

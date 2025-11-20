@@ -1,10 +1,16 @@
 const router = require('express').Router();
-const { register, login, refresh, sendOtp, verifyOtp } = require('../controllers/authController');
+const { register, refresh, sendOtp, verifyOtp } = require('../controllers/authController');
+const validate = require('../middlewares/validate');
+const { registerSchema, sendOtpSchema, verifyOtpSchema } = require('../src/validators/authValidators');
 
-router.post('/register', register);
-router.post('/login', login);
+// Public registration (users and partners)
+router.post('/register', validate(registerSchema), register);
+
+// Phone + OTP login flow for users/partners
+router.post('/send-otp', validate(sendOtpSchema), sendOtp);
+router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
+
+// Refresh token endpoint (unchanged)
 router.post('/refresh', refresh);
-router.post('/send-otp', sendOtp);
-router.post('/verify-otp', verifyOtp);
 
 module.exports = router;

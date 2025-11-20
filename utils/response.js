@@ -4,5 +4,6 @@ const badRequest = (res, message = 'Bad Request', data = null) => res.status(400
 const unauthorized = (res, message = 'Unauthorized') => res.status(401).json({ success: false, message, data: null });
 const forbidden = (res, message = 'Forbidden') => res.status(403).json({ success: false, message, data: null });
 const notFoundRes = (res, message = 'Not Found') => res.status(404).json({ success: false, message, data: null });
+const conflict = (res, message = 'Conflict', data = null) => res.status(409).json({ success: false, message, data });
 
-module.exports = { ok, created, badRequest, unauthorized, forbidden, notFoundRes };
+module.exports = { ok, created, badRequest, unauthorized, forbidden, notFoundRes, conflict };

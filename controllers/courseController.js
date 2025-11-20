@@ -1,5 +1,5 @@
 const Course = require('../models/Course');
-const { ok, created, notFoundRes } = require('../utils/response');
+const { ok, created, notFoundRes, forbidden } = require('../utils/response');
 
 // POST /api/courses
 exports.createCourse = async (req, res, next) => {
@@ -14,7 +14,9 @@ exports.createCourse = async (req, res, next) => {
 // GET /api/courses
 exports.getCourses = async (req, res, next) => {
   try {
-    const courses = await Course.find().populate('instructor', 'name');
+    const isGold = req.user && req.user.membershipTier === 'gold';
+    const filter = isGold ? {} : { $or: [{ price: { $exists: false } }, { price: 0 }] };
+    const courses = await Course.find(filter).populate('instructor', 'name');
     return ok(res, courses, 'Courses');
   } catch (err) {
     next(err);
@@ -26,6 +28,11 @@ exports.getCourseById = async (req, res, next) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course) return notFoundRes(res, 'Course not found');
+    if ((course.price || 0) > 0) {
+      if (!req.user || req.user.membershipTier !== 'gold') {
+        return forbidden(res, 'Gold membership required for paid courses');
+      }
+    }
     return ok(res, course, 'Course');
   } catch (err) {
     next(err);
@@ -73,6 +80,11 @@ exports.updateProgress = async (req, res, next) => {
     const { completedLessons, percentage } = req.body;
     const course = await Course.findById(req.params.id);
     if (!course) return notFoundRes(res, 'Course not found');
+    if ((course.price || 0) > 0) {
+      if (!req.user || req.user.membershipTier !== 'gold') {
+        return forbidden(res, 'Gold membership required for paid courses');
+      }
+    }
 
     const existing = course.progress.find((p) => String(p.user) === String(req.user._id));
     if (existing) {

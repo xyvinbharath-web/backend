@@ -5,7 +5,11 @@ const { createLogger, format, transports } = require('winston');
 const logsDir = path.join(__dirname, '..', 'logs');
 if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
 
-const level = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
+const env = process.env.NODE_ENV;
+
+const level = env === 'test'
+  ? 'error'
+  : (process.env.LOG_LEVEL || (env === 'production' ? 'info' : 'debug'));
 
 const logger = createLogger({
   level,

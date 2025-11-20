@@ -1,5 +1,5 @@
 const Event = require('../models/Event');
-const { ok, created, notFoundRes, badRequest } = require('../utils/response');
+const { ok, created, notFoundRes, badRequest, conflict } = require('../utils/response');
 
 // POST /api/events
 exports.createEvent = async (req, res, next) => {
@@ -27,7 +27,7 @@ exports.bookEvent = async (req, res, next) => {
     const ev = await Event.findById(req.params.id);
     if (!ev) return notFoundRes(res, 'Event not found');
     const already = ev.bookings.find((b) => String(b.user) === String(req.user._id));
-    if (already) return badRequest(res, 'Already booked');
+    if (already) return conflict(res, 'Already booked');
 
     if (ev.capacity && ev.bookings.length >= ev.capacity) return badRequest(res, 'Event full');
 

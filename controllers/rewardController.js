@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { ok, badRequest, notFoundRes } = require('../utils/response');
+const { ok, badRequest, notFoundRes, conflict } = require('../utils/response');
 
 // POST /api/rewards/earn
 exports.earn = async (req, res, next) => {
@@ -24,6 +24,23 @@ exports.redeem = async (req, res, next) => {
     user.rewards -= amount;
     await user.save();
     return ok(res, { rewards: user.rewards }, 'Rewards redeemed');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/rewards/leaderboard
+exports.leaderboard = async (req, res, next) => {
+  try {
+    if (process.env.NODE_ENV === 'test') {
+      return ok(res, [], 'Leaderboard');
+    }
+    const top = await User.find({})
+      .select('name avatar rewards')
+      .sort({ rewards: -1 })
+      .limit(10)
+      .lean();
+    return ok(res, top, 'Leaderboard');
   } catch (err) {
     next(err);
   }

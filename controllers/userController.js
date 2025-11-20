@@ -86,10 +86,15 @@ exports.listFollowing = async (req, res, next) => {
 // PATCH /api/users/rewards
 exports.updateRewards = async (req, res, next) => {
   try {
-    const { delta } = req.body; // +/- number
+    const body = req.body || {};
+    const { delta } = body; // +/- number
+    const amount = Number(delta);
+    if (!Number.isFinite(amount)) {
+      return badRequest(res, 'delta must be a number');
+    }
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { $inc: { rewards: delta || 0 } },
+      { $inc: { rewards: amount } },
       { new: true }
     );
     return ok(res, user, 'Rewards updated');
@@ -101,7 +106,11 @@ exports.updateRewards = async (req, res, next) => {
 // POST /api/users/referrals
 exports.setReferral = async (req, res, next) => {
   try {
-    const { referredBy } = req.body; // code or user id
+    const body = req.body || {};
+    const { referredBy } = body; // code or user id
+    if (typeof referredBy === 'undefined' || referredBy === null || referredBy === '') {
+      return badRequest(res, 'referredBy is required');
+    }
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { referredBy },

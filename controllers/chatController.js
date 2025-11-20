@@ -4,15 +4,7 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const { ok, created, forbidden, badRequest, notFoundRes } = require('../utils/response');
-
-// Note: getIo will be implemented in src/lib/io.js in a later step.
-let getIo;
-try {
-  // eslint-disable-next-line global-require, import/no-unresolved
-  ({ getIo } = require('../lib/io'));
-} catch (_) {
-  getIo = () => null;
-}
+const { getIo } = require('../src/lib/io');
 
 const toObjectId = (id) => (id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(String(id)));
 

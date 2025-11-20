@@ -1,0 +1,195 @@
+name: Backend Swagger Tests
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: backend
+        run: npm run lint
+
+  swagger-validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install Redocly CLI
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint Swagger spec
+        working-directory: backend
+        run: npm run validate:contract
+
+  commitlint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run commitlint on recent commits
+        working-directory: backend
+        run: npx commitlint --from=HEAD~10 --to=HEAD
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [lint, swagger-validate, commitlint]
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
+
+    env:
+      NODE_ENV: test
+      MONGO_URI: mongodb://localhost:27017/test
+      API_BASE_URL: http://localhost:5000
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: StrongPassword123
+      TEST_USER_PHONE: +911234567890
+      TEST_USER_OTP: 123456
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Wait for MongoDB
+        run: |
+          for i in {1..30}; do
+            if mongosh --host localhost --eval 'db.adminCommand("ping")' >/dev/null 2>&1; then
+              echo "MongoDB is up!"
+              exit 0
+            fi
+            echo "Waiting for MongoDB..."
+            sleep 2
+          done
+          echo "MongoDB did not become ready in time"
+          exit 1
+
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          node server.js &
+          echo $! > server.pid
+          sleep 10
+
+      - name: Run Swagger positive and negative tests
+        working-directory: backend
+        run: |
+          npm test -- swagger | tee jest-swagger-${{ matrix.node }}.log
+          npm test -- negative | tee jest-negative-${{ matrix.node }}.log
+
+      - name: Stop backend server
+        if: always()
+        working-directory: backend
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
+
+      - name: Upload Jest logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-logs-node-${{ matrix.node }}
+          path: |
+            backend/jest-swagger-${{ matrix.node }}.log
+            backend/jest-negative-${{ matrix.node }}.log
+          if-no-files-found: ignore
+
+      - name: Upload coverage report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-node-${{ matrix.node }}
+          path: backend/coverage
+          if-no-files-found: ignore
+
+      - name: Upload server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs-node-${{ matrix.node }}
+          path: backend/logs
+          if-no-files-found: ignore
+
+      - name: Upload k6 results (if present)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-node-${{ matrix.node }}
+          path: /mnt/data/k6-report.json
+          if-no-files-found: ignore

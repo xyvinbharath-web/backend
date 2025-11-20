@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1763640345173" clover="3.2.0">
+  <project timestamp="1763640345173" name="All files">
+    <metrics statements="259" coveredstatements="258" conditionals="20" coveredconditionals="19" methods="11" coveredmethods="10" elements="290" coveredelements="287" complexity="0" loc="259" ncloc="259" packages="4" files="35" classes="35"/>
+    <package name="models">
+      <metrics statements="74" coveredstatements="74" conditionals="8" coveredconditionals="7" methods="5" coveredmethods="5"/>
+      <file name="AuditLog.js" path="D:\Xyvin\LMS\backend\models\AuditLog.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="14" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+      </file>
+      <file name="Conversation.js" path="D:\Xyvin\LMS\backend\models\Conversation.js">
+        <metrics statements="5" coveredstatements="5" conditionals="2" coveredconditionals="2" methods="1" coveredmethods="1"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="15" count="19" type="cond" truecount="2" falsecount="0"/>
+        <line num="28" count="38" type="stmt"/>
+        <line num="30" count="38" type="stmt"/>
+      </file>
+      <file name="Course.js" path="D:\Xyvin\LMS\backend\models\Course.js">
+        <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+        <line num="22" count="38" type="stmt"/>
+        <line num="35" count="38" type="stmt"/>
+      </file>
+      <file name="Event.js" path="D:\Xyvin\LMS\backend\models\Event.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="22" count="38" type="stmt"/>
+      </file>
+      <file name="Follow.js" path="D:\Xyvin\LMS\backend\models\Follow.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="21" count="38" type="stmt"/>
+        <line num="23" count="38" type="stmt"/>
+      </file>
+      <file name="Message.js" path="D:\Xyvin\LMS\backend\models\Message.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="41" count="38" type="stmt"/>
+        <line num="43" count="38" type="stmt"/>
+      </file>
+      <file name="Notification.js" path="D:\Xyvin\LMS\backend\models\Notification.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="15" count="38" type="stmt"/>
+        <line num="17" count="38" type="stmt"/>
+      </file>
+      <file name="Otp.js" path="D:\Xyvin\LMS\backend\models\Otp.js">
+        <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="14" count="38" type="stmt"/>
+        <line num="15" count="38" type="stmt"/>
+        <line num="17" count="38" type="stmt"/>
+      </file>
+      <file name="Payment.js" path="D:\Xyvin\LMS\backend\models\Payment.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="17" count="1" type="stmt"/>
+        <line num="19" count="1" type="stmt"/>
+      </file>
+      <file name="Post.js" path="D:\Xyvin\LMS\backend\models\Post.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="22" count="38" type="stmt"/>
+      </file>
+      <file name="Referral.js" path="D:\Xyvin\LMS\backend\models\Referral.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+        <line num="15" count="38" type="stmt"/>
+      </file>
+      <file name="Review.js" path="D:\Xyvin\LMS\backend\models\Review.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+        <line num="15" count="38" type="stmt"/>
+      </file>
+      <file name="Ticket.js" path="D:\Xyvin\LMS\backend\models\Ticket.js">
+        <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="22" count="38" type="stmt"/>
+        <line num="24" count="38" type="stmt"/>
+      </file>
+      <file name="Token.js" path="D:\Xyvin\LMS\backend\models\Token.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="14" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+      </file>
+      <file name="User.js" path="D:\Xyvin\LMS\backend\models\User.js">
+        <metrics statements="14" coveredstatements="14" conditionals="6" coveredconditionals="5" methods="4" coveredmethods="4"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="4" count="38" type="stmt"/>
+        <line num="16" count="49" type="stmt"/>
+        <line num="23" count="49" type="stmt"/>
+        <line num="50" count="38" type="stmt"/>
+        <line num="51" count="49" type="cond" truecount="4" falsecount="0"/>
+        <line num="52" count="3" type="stmt"/>
+        <line num="53" count="3" type="stmt"/>
+        <line num="54" count="3" type="stmt"/>
+        <line num="57" count="38" type="stmt"/>
+        <line num="58" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="59" count="3" type="stmt"/>
+        <line num="62" count="38" type="stmt"/>
+      </file>
+    </package>
+    <package name="routes">
+      <metrics statements="132" coveredstatements="131" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="0"/>
+      <file name="adminRoutes.js" path="D:\Xyvin\LMS\backend\routes\adminRoutes.js">
+        <metrics statements="17" coveredstatements="17" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="4" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="12" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+        <line num="14" count="38" type="stmt"/>
+        <line num="15" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+        <line num="17" count="38" type="stmt"/>
+        <line num="18" count="38" type="stmt"/>
+        <line num="19" count="38" type="stmt"/>
+        <line num="21" count="38" type="stmt"/>
+        <line num="22" count="38" type="stmt"/>
+        <line num="24" count="38" type="stmt"/>
+      </file>
+      <file name="authRoutes.js" path="D:\Xyvin\LMS\backend\routes\authRoutes.js">
+        <metrics statements="9" coveredstatements="9" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="4" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="14" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+      </file>
+      <file name="chatRoutes.js" path="D:\Xyvin\LMS\backend\routes\chatRoutes.js">
+        <metrics statements="12" coveredstatements="12" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="18" count="38" type="stmt"/>
+        <line num="20" count="38" type="stmt"/>
+        <line num="21" count="38" type="stmt"/>
+        <line num="22" count="38" type="stmt"/>
+        <line num="23" count="38" type="stmt"/>
+        <line num="24" count="38" type="stmt"/>
+        <line num="25" count="38" type="stmt"/>
+        <line num="27" count="38" type="stmt"/>
+      </file>
+      <file name="communityRoutes.js" path="D:\Xyvin\LMS\backend\routes\communityRoutes.js">
+        <metrics statements="10" coveredstatements="10" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="6" count="38" type="stmt"/>
+        <line num="8" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+      </file>
+      <file name="courseRoutes.js" path="D:\Xyvin\LMS\backend\routes\courseRoutes.js">
+        <metrics statements="15" coveredstatements="15" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+        <line num="18" count="38" type="stmt"/>
+        <line num="19" count="38" type="stmt"/>
+        <line num="21" count="38" type="stmt"/>
+        <line num="22" count="38" type="stmt"/>
+        <line num="23" count="38" type="stmt"/>
+        <line num="25" count="38" type="stmt"/>
+        <line num="26" count="38" type="stmt"/>
+        <line num="29" count="38" type="stmt"/>
+        <line num="30" count="38" type="stmt"/>
+        <line num="31" count="38" type="stmt"/>
+        <line num="33" count="38" type="stmt"/>
+      </file>
+      <file name="eventRoutes.js" path="D:\Xyvin\LMS\backend\routes\eventRoutes.js">
+        <metrics statements="9" coveredstatements="9" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="4" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="8" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+      </file>
+      <file name="notificationRoutes.js" path="D:\Xyvin\LMS\backend\routes\notificationRoutes.js">
+        <metrics statements="11" coveredstatements="11" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="4" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="14" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+      </file>
+      <file name="partnerRoutes.js" path="D:\Xyvin\LMS\backend\routes\partnerRoutes.js">
+        <metrics statements="6" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="6" count="38" type="stmt"/>
+        <line num="7" count="0" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+      </file>
+      <file name="referralRoutes.js" path="D:\Xyvin\LMS\backend\routes\referralRoutes.js">
+        <metrics statements="10" coveredstatements="10" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="15" count="38" type="stmt"/>
+        <line num="17" count="38" type="stmt"/>
+        <line num="18" count="38" type="stmt"/>
+        <line num="19" count="38" type="stmt"/>
+        <line num="21" count="38" type="stmt"/>
+        <line num="23" count="38" type="stmt"/>
+      </file>
+      <file name="rewardRoutes.js" path="D:\Xyvin\LMS\backend\routes\rewardRoutes.js">
+        <metrics statements="9" coveredstatements="9" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="4" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="8" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+      </file>
+      <file name="supportRoutes.js" path="D:\Xyvin\LMS\backend\routes\supportRoutes.js">
+        <metrics statements="9" coveredstatements="9" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="8" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="12" count="38" type="stmt"/>
+      </file>
+      <file name="userRoutes.js" path="D:\Xyvin\LMS\backend\routes\userRoutes.js">
+        <metrics statements="15" coveredstatements="15" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="6" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="8" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="12" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+        <line num="17" count="38" type="stmt"/>
+        <line num="18" count="38" type="stmt"/>
+        <line num="19" count="38" type="stmt"/>
+        <line num="21" count="38" type="stmt"/>
+      </file>
+    </package>
+    <package name="routes.admin">
+      <metrics statements="10" coveredstatements="10" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+      <file name="subscriptionAdminRoutes.js" path="D:\Xyvin\LMS\backend\routes\admin\subscriptionAdminRoutes.js">
+        <metrics statements="10" coveredstatements="10" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="2" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="4" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="7" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.validators">
+      <metrics statements="43" coveredstatements="43" conditionals="12" coveredconditionals="12" methods="5" coveredmethods="5"/>
+      <file name="adminSubscriptionValidators.js" path="D:\Xyvin\LMS\backend\src\validators\adminSubscriptionValidators.js">
+        <metrics statements="5" coveredstatements="5" conditionals="3" coveredconditionals="3" methods="1" coveredmethods="1"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="12" count="38" type="stmt"/>
+        <line num="20" count="4" type="cond" truecount="3" falsecount="0"/>
+        <line num="25" count="38" type="stmt"/>
+      </file>
+      <file name="authValidators.js" path="D:\Xyvin\LMS\backend\src\validators\authValidators.js">
+        <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+        <line num="19" count="38" type="stmt"/>
+        <line num="26" count="38" type="stmt"/>
+      </file>
+      <file name="chatValidators.js" path="D:\Xyvin\LMS\backend\src\validators\chatValidators.js">
+        <metrics statements="14" coveredstatements="14" conditionals="9" coveredconditionals="9" methods="4" coveredmethods="4"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="10" count="38" type="stmt"/>
+        <line num="14" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="15" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="21" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="22" count="3" type="cond" truecount="3" falsecount="0"/>
+        <line num="27" count="38" type="stmt"/>
+        <line num="33" count="38" type="stmt"/>
+        <line num="39" count="38" type="stmt"/>
+        <line num="47" count="38" type="stmt"/>
+        <line num="54" count="38" type="stmt"/>
+        <line num="60" count="38" type="stmt"/>
+      </file>
+      <file name="eventValidators.js" path="D:\Xyvin\LMS\backend\src\validators\eventValidators.js">
+        <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="16" count="38" type="stmt"/>
+        <line num="20" count="38" type="stmt"/>
+        <line num="26" count="38" type="stmt"/>
+      </file>
+      <file name="notificationValidators.js" path="D:\Xyvin\LMS\backend\src\validators\notificationValidators.js">
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+      </file>
+      <file name="referralValidators.js" path="D:\Xyvin\LMS\backend\src\validators\referralValidators.js">
+        <metrics statements="7" coveredstatements="7" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="5" count="38" type="stmt"/>
+        <line num="11" count="38" type="stmt"/>
+        <line num="13" count="38" type="stmt"/>
+        <line num="24" count="38" type="stmt"/>
+        <line num="32" count="38" type="stmt"/>
+      </file>
+      <file name="rewardValidators.js" path="D:\Xyvin\LMS\backend\src\validators\rewardValidators.js">
+        <metrics statements="3" coveredstatements="3" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="1" count="38" type="stmt"/>
+        <line num="3" count="38" type="stmt"/>
+        <line num="9" count="38" type="stmt"/>
+      </file>
+    </package>
+  </project>
+</coverage>

@@ -15,6 +15,7 @@ const postSchema = new mongoose.Schema(
     image: { type: String },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     comments: [commentSchema],
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
   },
   { timestamps: true }
 );

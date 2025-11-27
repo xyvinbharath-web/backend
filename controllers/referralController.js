@@ -1,9 +1,18 @@
 const mongoose = require('mongoose');
 const Referral = require('../models/Referral');
 const User = require('../models/User');
+const Setting = require('../models/Setting');
 const { ok, badRequest, notFoundRes } = require('../utils/response');
 
-const REFERRAL_REWARD_POINTS = Number(process.env.REFERRAL_REWARD_POINTS || 50);
+async function getRewardConfig() {
+  const doc = await Setting.findOne({ key: 'global' }).lean();
+  return {
+    inviteSignupPoints:
+      doc && typeof doc.inviteSignupPoints === 'number' ? doc.inviteSignupPoints : 50,
+    inviteGoldPoints:
+      doc && typeof doc.inviteGoldPoints === 'number' ? doc.inviteGoldPoints : 200,
+  };
+}
 
 const parseReferralCode = (code) => {
   if (!code || !code.startsWith('INVITE-')) return null;
@@ -27,12 +36,13 @@ exports.getReferralStats = async (req, res, next) => {
     const referrerId = req.user._id;
 
     const referrals = await Referral.find({ referrerId }).lean();
+    const user = await User.findById(referrerId).select('rewards');
 
     const totalReferred = referrals.length;
     const rewardsIssuedCount = referrals.filter((r) => r.rewardIssued).length;
     const pendingRewardsCount = referrals.filter((r) => !r.rewardIssued && r.subscriptionCompleted).length;
 
-    const rewardsEarned = rewardsIssuedCount * REFERRAL_REWARD_POINTS;
+    const rewardsEarned = user ? user.rewards || 0 : 0;
 
     return ok(
       res,
@@ -67,7 +77,17 @@ exports.applyReferral = async (req, res, next) => {
       return ok(res, existing, 'Referral already applied');
     }
 
-    const referral = await Referral.create({ referrerId, referredId, rewardIssued: false, subscriptionCompleted: false });
+    const referral = await Referral.create({
+      referrerId,
+      referredId,
+      rewardIssued: false,
+      subscriptionCompleted: false,
+    });
+
+    const { inviteSignupPoints } = await getRewardConfig();
+    if (inviteSignupPoints > 0) {
+      await User.findByIdAndUpdate(referrerId, { $inc: { rewards: inviteSignupPoints } });
+    }
 
     return ok(res, referral, 'Referral applied');
   } catch (err) {
@@ -97,9 +117,11 @@ exports.issueReward = async (req, res, next) => {
     referral.subscriptionCompleted = true;
     referral.rewardIssued = true;
 
+    const { inviteGoldPoints } = await getRewardConfig();
+
     const referrer = await User.findByIdAndUpdate(
       referral.referrerId,
-      { $inc: { rewards: REFERRAL_REWARD_POINTS } },
+      inviteGoldPoints > 0 ? { $inc: { rewards: inviteGoldPoints } } : {},
       { new: true }
     );
 

@@ -15,7 +15,12 @@ exports.createCourse = async (req, res, next) => {
 exports.getCourses = async (req, res, next) => {
   try {
     const isGold = req.user && req.user.membershipTier === 'gold';
-    const filter = isGold ? {} : { $or: [{ price: { $exists: false } }, { price: 0 }] };
+    const baseFilter = { published: true };
+    const priceFilter = isGold
+      ? {}
+      : { $or: [{ price: { $exists: false } }, { price: 0 }] };
+
+    const filter = { ...baseFilter, ...priceFilter };
     const courses = await Course.find(filter).populate('instructor', 'name');
     return ok(res, courses, 'Courses');
   } catch (err) {

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../../../models/User');
 const Notification = require('../../../models/Notification');
+const Payment = require('../../../models/Payment');
 const { ok, badRequest, notFoundRes } = require('../../../utils/response');
 const { paginate } = require('../../../utils/pagination');
 
@@ -43,8 +44,6 @@ async function listPayments(req, res, next) {
     if (req.query.plan) {
       filter.plan = req.query.plan;
     }
-
-    const Payment = mongoose.model('Payment');
 
     const [records, totalRecords] = await Promise.all([
       Payment.find(filter).skip((page - 1) * limit).limit(limit),

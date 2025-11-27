@@ -15,6 +15,7 @@ const eventSchema = new mongoose.Schema(
     date: { type: Date, required: true },
     capacity: { type: Number, default: 0 },
     bookings: [bookingSchema],
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
   },
   { timestamps: true }
 );

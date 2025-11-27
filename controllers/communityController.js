@@ -20,7 +20,9 @@ exports.createPost = async (req, res, next) => {
 // GET /api/community/posts
 exports.getPosts = async (req, res, next) => {
   try {
-    const posts = await Post.find().populate('user', 'name').sort({ createdAt: -1 });
+    const posts = await Post.find({ status: 'approved' })
+      .populate('user', 'name')
+      .sort({ createdAt: -1 });
     return ok(res, posts, 'Posts');
   } catch (err) {
     next(err);

@@ -33,6 +33,8 @@ tags:
     description: User profile and management
   - name: Events
     description: Events and bookings
+  - name: Courses
+    description: Courses and lessons
   - name: Reviews
     description: Reviews for events
   - name: Rewards
@@ -119,6 +121,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/reset-password-dev:
+    post:
+      tags: [Auth, Admin]
+      summary: TEMP dev-only admin password reset
+      description: |
+        Reset an admin user's password by email. **DEV ONLY – remove this endpoint in production.**
+
+        This directly sets a new password for the user with the given email using the normal
+        User model hashing on save.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                newPassword:
+                  type: string
+              required:
+                - email
+                - newPassword
+            examples:
+              example:
+                value:
+                  email: admin2@example.com
+                  newPassword: Admin@12345
+      responses:
+        '200':
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              examples:
+                ok:
+                  value:
+                    success: true
+                    message: Admin password reset (dev)
+                    data:
+                      id: 665f8b3e8e8f2a0012345678
+                      email: admin2@example.com
 
   /api/v1/admin/subscriptions:
     get:
@@ -228,6 +275,72 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =====================
+  # Courses
+  # =====================
+  /api/v1/courses:
+    get:
+      tags: [Courses]
+      summary: List courses
+      description: Public listing of courses with optional filters.
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Optional search by title
+      responses:
+        '200':
+          description: Courses list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseListResponse'
+    post:
+      tags: [Courses]
+      summary: Create course
+      description: |
+        Create a new course. Requires authentication as a partner or admin.
+
+        The `instructor` field is taken from the authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseCreateRequest'
+            examples:
+              example:
+                value:
+                  title: Test Course 1
+                  description: Admin panel test course
+                  price: 0
+                  published: true
+                  lessons:
+                    - title: Intro
+                      content: Welcome to the course
+                      videoUrl: https://example.com/video1.mp4
+                      duration: 300
+      responses:
+        '201':
+          description: Course created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not a partner or admin)
           content:
             application/json:
               schema:
@@ -579,6 +692,82 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Partner awaiting approval or account suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =====================
+  # Support - User Tickets
+  # =====================
+  /api/v1/support/tickets:
+    post:
+      tags: [Users]
+      summary: Create support ticket (current user)
+      description: Create a support ticket for the authenticated user.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                message:
+                  type: string
+              required: [subject, message]
+            examples:
+              example:
+                value:
+                  subject: "Test ticket"
+                  message: "This is a test support ticket."
+      responses:
+        '201':
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Validation error or missing fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags: [Users]
+      summary: List support tickets for current user
+      description: Returns paginated support tickets for the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tickets list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -1935,6 +2124,97 @@ components:
           type: string
         data:
           $ref: '#/components/schemas/Event'
+
+    Course:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        published:
+          type: boolean
+        instructor:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+        lessons:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              content:
+                type: string
+              videoUrl:
+                type: string
+              duration:
+                type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CourseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Course'
+
+    CourseListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Course'
+
+    CourseCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        published:
+          type: boolean
+        lessons:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              content:
+                type: string
+              videoUrl:
+                type: string
+              duration:
+                type: integer
+      required: [title]
 
     EventListResponse:
       type: object

@@ -4,7 +4,13 @@ const { ok, created, notFoundRes, badRequest, conflict } = require('../utils/res
 // POST /api/events
 exports.createEvent = async (req, res, next) => {
   try {
-    const ev = await Event.create(req.body);
+    const body = { ...req.body };
+    // Backwards compatibility: if client sends startDate but no date, map it.
+    if (!body.date && body.startDate) {
+      body.date = body.startDate;
+    }
+
+    const ev = await Event.create(body);
     return created(res, ev, 'Event created');
   } catch (err) {
     next(err);
@@ -14,7 +20,7 @@ exports.createEvent = async (req, res, next) => {
 // GET /api/events
 exports.getEvents = async (req, res, next) => {
   try {
-    const events = await Event.find();
+    const events = await Event.find({ status: 'approved' });
     return ok(res, events, 'Events');
   } catch (err) {
     next(err);

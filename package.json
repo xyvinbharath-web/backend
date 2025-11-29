@@ -38,7 +38,8 @@
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.18.3",
     "xss-clean": "^0.1.4",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
@@ -52,7 +53,6 @@
     "mockingoose": "^2.16.2",
     "mongodb-memory-server": "^10.3.0",
     "nodemon": "^3.1.11",
-    "supertest": "^7.1.4",
-    "zod": "^3.25.76"
+    "supertest": "^7.1.4"
   }
 }

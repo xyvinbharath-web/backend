@@ -10,11 +10,11 @@ RUN npm ci --only=production || npm ci --omit=dev
 # Copy app
 COPY . .
 
-# Expose port
+# Expose default app port (Render will inject PORT env var)
 EXPOSE 5000
 
-# Healthcheck: simple HTTP call to /health
+# Healthcheck: simple HTTP call to /health using PORT if set
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:5000/health || exit 1
+  CMD wget -qO- http://localhost:${PORT:-5000}/health || exit 1
 
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]
